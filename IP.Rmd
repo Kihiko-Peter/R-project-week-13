@@ -1,0 +1,465 @@
+---
+title: "Week 13 R project"
+author: "Kihiko Peter"
+date: '2022-06-04'
+output:
+  html_document: default
+  pdf_document: default
+---
+# 1. Defining the Question.
+##(a) Specifing the question.
+### Kira Plastinina is a Russian brand that is sold through a defunct chain of retail stores in Russia, Ukraine, Kazakhstan,Belarus, China, Philippines, and Armenia. The brand’s Sales and Marketing team would like to understand their customer’s behavior from data that they have collected over the past year. More specifically, they would like to learn the characteristics of customer groups.
+
+##(b) Metrics for success
+
+## (c) Understanding the context
+
+ The dataset consists of 10 numerical and 8 categorical attributes. The ‘Revenue’ attributecan be used as the class label.
+“Administrative”, “Administrative Duration”, “Informational”, “Informational Duration”,
+“Product Related” and “Product Related Duration” represents the number of different types
+of pages visited by the visitor in that session and total time spent in each of these page
+categories. The values of these features are derived from the URL information of the pages
+visited by the user and updated in real-time when a user takes an action, e.g. moving from
+one page to another.
+The “Bounce Rate”, “Exit Rate” and “Page Value” features represent the metrics measured
+by “Google Analytics” for each page in the e-commerce site.
+The value of the “Bounce Rate” feature for a web page refers to the percentage of visitors
+who enter the site from that page and then leave (“bounce”) without triggering any other
+requests to the analytics server during that session.
+The value of the “Exit Rate” feature for a specific web page is calculated as for all pageviews
+to the page, the percentage that was the last in the session.
+The “Page Value” feature represents the average value for a web page that a user visited
+before completing an e-commerce transaction.
+The “Special Day” feature indicates the closeness of the site visiting time to a specific
+special day (e.g. Mother’s Day, Valentine’s Day) in which the sessions are more likely to be
+finalized with the transaction. The value of this attribute is determined by considering the
+dynamics of e-commerce such as the duration between the order date and delivery date.
+For example, for Valentina’s day, this value takes a nonzero value between February 2 and
+February 12, zero before and after this date unless it is close to another special day, and its
+maximum value of 1 on February 8.
+The dataset also includes the operating system, browser, region, traffic type, visitor type as
+returning or new visitor, a Boolean value indicating whether the date of the visit is
+weekend, and month of the year.
+
+##(d) Experimental Design
+
+Problem Definition
+Set up your work environment
+Data Sourcing
+Check the Data
+Perform Data Cleaning
+Perform Exploratory Data Analysis (Univariate, Bivariate & Multivariate)
+Implement the Solution
+Challenge the Solution
+Follow up Questions
+
+# Importing Relevant Libraries
+```{r}
+##Importing Libraries we need for this Project analysis.
+
+library(tidyverse)
+library(data.table)
+library(lattice)
+library(caret)
+library(rmarkdown)
+library(tinytex)
+library(tidyverse)
+library(magrittr)
+library(warn = -1)
+library(RColorBrewer)
+library(ggplot2)
+library(lattice)
+library(corrplot)
+library(mice)
+library(DataExplorer)
+
+
+
+```
+
+
+# 2. Loading of the Dataset
+```{r}
+# Loading the Dataset 
+
+customer_df = fread('http://bit.ly/EcommerceCustomersDataset')
+
+```
+# 3. Previewing of the dataset
+
+```{r}
+# Lets preview the top entries of our dataset
+
+head(customer_df)
+
+```
+
+
+```{r}
+# Lets preview the last six entries of the dataset
+tail(customer_df)
+
+
+```
+
+```{r}
+# Lets check the shape of the dataset
+
+dim(customer_df)
+
+
+# The dataset contains 12330 rows and 18 columns
+# There are various data types: double, character and logical.
+# Some variables need to be encoded.
+```
+```{r}
+# Lets check the datatypes of the data
+
+sapply(customer_df,class)
+
+
+```
+```{r}
+# Lets check the unique values
+
+sapply(customer_df,function(x) length(unique(x)))
+
+```
+```{r}
+# Lets check the Summary Statistics of the dataset
+summary(customer_df)
+
+```
+
+# 4. Data Cleaning
+
+```{r}
+# Lets check for the number missing values
+
+colSums(is.na(customer_df))
+
+
+# Five columns contained 14 missing values each
+
+```
+
+```{r}
+# Lets check for duplicated values in the dataset
+
+duplicates <- customer_df[duplicated(customer_df),]
+dim(duplicates)
+
+# The dataset contains missing values
+```
+```{r}
+# Finding the percentage of missing values
+sum(is.na(customer_df))/prod(dim(customer_df)) * 100
+
+```
+```{r}
+# Lets deal with the missing values
+customer_df  = customer_df %>%
+
+    mutate(Administrative =replace(Administrative,is.na(Administrative),mean(Administrative,na.rm=TRUE)))%>%
+    mutate(Administrative_Duration =replace(Administrative_Duration,is.na(Administrative_Duration),mean(Administrative_Duration,na.rm=TRUE)))%>%
+    mutate(Informational = replace(Informational, is.na(Informational), mean(Informational, na.rm = TRUE)))%>%
+    mutate(Informational_Duration =replace(Informational_Duration,is.na(Informational_Duration),mean(Informational_Duration,na.rm=TRUE)))%>%
+    mutate(ProductRelated =replace(ProductRelated,is.na(ProductRelated),mean(ProductRelated,na.rm=TRUE)))%>%
+    mutate(ProductRelated_Duration = replace(ProductRelated_Duration, is.na(ProductRelated_Duration), mean(ProductRelated_Duration, na.rm = TRUE)))%>%
+    mutate(BounceRates =replace(BounceRates, is.na(BounceRates),mean(BounceRates,na.rm=TRUE)))%>%
+    mutate(ExitRates = replace(ExitRates, is.na(ExitRates), mean(ExitRates, na.rm = TRUE)))
+
+```
+
+```{r}
+
+# Lets check if we have missing values anymore
+
+colSums(is.na(customer_df))
+
+```
+```{r}
+# Lets deal with the duplicates by removing them
+
+customer_df <- customer_df[!duplicated(customer_df),]
+dim(customer_df)
+
+```
+
+```{r}
+
+# Lets check if the duplicated values have been removed
+duplicates <- customer_df[duplicated(customer_df),]
+dim(duplicates)
+
+```
+
+```{r}
+# Lets check for outliers using boxplots
+
+boxplot(customer_df$Administrative)
+boxplot(customer_df$Administrative_Duration)
+boxplot(customer_df$Informational)
+boxplot(customer_df$Informational_Duration)
+boxplot(customer_df$ProductRelated)
+boxplot(customer_df$ProductRelated_Duration)
+boxplot(customer_df$BounceRates)
+boxplot(customer_df$ExitRates)
+
+# Our dataset contains outliers but let's not remove them since they may be true values
+```
+
+```{r}
+# Using a boxplot to check for observations far away from other data points.
+# Using all double type columns: specifying each
+# labeling the title
+# labeling the x axis
+# specifying color options
+
+adm1 <- customer_df$Administrative
+admd2 <-customer_df$Administrative_Duration
+info1 <- customer_df$Informational
+info2 <- customer_df$Informational_Duration
+pr1 <- customer_df$ProductRelated    
+prd2 <- customer_df$ProductRelated_Duration
+bounce_r <-customer_df$BounceRates
+exit_r <- customer_df$ExitRates
+page_values <-customer_df$PageValues
+special_day <- customer_df$SpecialDay
+
+ 
+
+boxplot(adm1, admd2, info1, info2, pr1, prd2, bounce_r, exit_r, page_values, special_day,
+main = "Multiple boxplots for comparison",
+at = c(1,2,3,4,5,6,7,8,9,10),
+names = c("adm1", "admd2", "info1", "info2", "pr1", "prd2", "bounce_r", "exit_r", "page_values", "special_day"),
+las = 2,
+col = c("orange","red","blue", "grey", "chartreuse", "blue4", "purple", "green", "gold", "azure"),
+border = "coral",
+horizontal = TRUE,
+notch = TRUE
+)
+
+```
+
+# 5. Exploratory Data Analysis
+## (a) Univariate Analysis
+
+```{r}
+
+# Lets plot a histogram using ggplots 
+# 
+#
+
+customer_df %>%
+    ggplot(aes(ProductRelated)) +
+    geom_histogram(color = "Green",fill = "red") +
+    geom_vline(xintercept = mean(customer_df$ProductRelated), lwd = 2) +
+    labs(title = "Distribution of Product Related",
+         x = "Product Related",
+         y = "Frequency")
+
+
+
+```
+
+
+```{r}
+# Lets plot a histogram of 
+hist(customer_df$ExitRates,
+     main = "Histogram of Exit Rates",
+     xlab = "Exit Rates",
+     col = "magenta")
+
+
+```
+
+```{r}
+# Plotting a histogram Exit Rates relaive to Revenue 
+
+customer_df %>%
+    ggplot(aes(ExitRates)) +
+    geom_histogram(color = "white",fill = "green") +
+    labs(title = "Distribution of Exit Rates relative to Revenue",
+         x = "Exit Rates",
+         y = "Frequency") +
+    facet_grid(Revenue~.)
+
+
+```
+
+```{r}
+# Plotting a Histogram of the Bounce rates relaive to Weekend
+
+customer_df %>%
+    ggplot(aes(BounceRates)) +
+    geom_histogram(color = "white",fill = "orange") +
+    labs(title = "Distribution of Bounce Rates relative to Weekend",
+         x = "Bounce Rates",
+         y = "Frequency") +
+    facet_grid(Weekend~.)
+
+```
+
+```{r}
+
+# Plotting all histograms in the continuous variables in our data 
+
+plot_histogram(customer_df)
+
+```
+
+# Bivariate Analysis
+```{r}
+# Plotting a scatter plot using the plot() method
+
+plot(ExitRates ~ BounceRates, data = customer_df, 
+      col = "red",
+      main = "Bounce vs Exit Rates Scatter Plot")
+
+```
+
+```{r}
+# Scatter plot using ggplots and fitting a line of best fit
+
+ggplot(customer_df, aes(x = Administrative_Duration, y = Informational_Duration)) + 
+        geom_point(size = 2, color= "green", shape = 23)+ 
+        geom_smooth(method=lm,  linetype="dashed",color="darkred", fill="blue")+
+        labs(title = "Info Duration vs Adm Duration Scatter Plot")
+   
+
+
+
+```
+# Multivariate Analysis
+```{r}
+# calculate correlations
+correlations <- cor(customer_df[,1:10])
+# create correlation plot
+corrplot(correlations, method= 'circle')
+
+```
+
+```{r}
+
+# Continuous variables pair plot
+
+pairs(customer_df[,1:10])
+
+
+```
+
+# 6. Implementing the Solution
+# K-means clustering
+
+```{r}
+brand.new<- customer_df[, c(1:17)]
+brand.class<- customer_df[, "Revenue"]
+head(brand.new)
+
+
+```
+
+```{r}
+# Previewing the class column
+# ---
+# 
+head(brand.class)
+
+```
+
+
+```{r}
+# converting weekend variables to numerical using dummies
+# option max print is set as 99999 to ensure no variable is omitted when het are converted to dummies
+
+brand.new$Weekend = factor(brand.new$Weekend,levels = c('FALSE', 'TRUE'),labels = c(0, 1),options(max.print = 999999 ))
+head(brand.new$Weekend)
+```
+
+```{r}
+
+dummy <- dummyVars("~ .", "Month + Operating_Systems + Browser + Region + 
+                   Traffic_Type + Visitor_Type + Weekend", data=brand.new)
+encoded <- data.frame(predict(dummy, newdata = brand.new))
+brand.new <- cbind(brand.new[ , 1:10], encoded)
+
+```
+
+```{r}
+head(brand.new)
+```
+
+```{r}
+
+brand.new <- scale(brand.new)
+
+```
+
+
+```{r}
+# Normalizing the a copy of the original data
+
+brand.new <- as.data.frame(apply(brand.new, 2, function(x) (x - min(x))/(max(x)-min(x))))
+```
+
+
+```{r}
+head(brand.new)
+```
+
+
+```{r}
+# Applying the K-means clustering algorithm with no. of centroids(k)=3
+# ---
+# 
+result<- kmeans(brand.new,2) 
+
+# Previewing the no. of records in each cluster
+# 
+result$size 
+```
+
+
+```{r}
+#Getting the value of cluster center datapoint value(2 centers for k=2)
+
+centres <-result$centers 
+head(centres)
+
+```
+
+
+```{r}
+
+# Plotting two variables to see how their data points 
+# have been distributed in the cluster
+# Product Related, vs Product Related Duration
+
+plot(brand.new[, 5:6], col = result$cluster)
+
+```
+# Challenging the solution
+
+
+```{r}
+# We use R function hclust() 
+# For hierarchical clustering
+# First we use the dist() to compute the Euclidean distance btwn obs
+# d will be the first argument in the hclust() dissimilairty matrix
+# 
+
+brand <- dist(brand.new, method = "euclidean")
+
+# We then apply hierarchical clustering using the Ward's method
+
+res.hc <- hclust(brand, method = "ward.D2")
+
+# Lastly we plot the obtained dendrogram
+#--
+
+plot(res.hc, cex = 0.6, hang = -1)
+
+
+```
+
